@@ -60,7 +60,7 @@ export const initDefaultStops = async (busId, direction) => {
     if (!hasDeparture) {
         const newRef = push(ref(db, `routes/${busId}/${direction}/stops`));
         await set(newRef, {
-            name: `출발`,
+            name: `차고지 (${label} 출발)`,
             address: '',
             scheduledTime: direction === 'school' ? '07:30' : '14:00',
             stopType: 'departure',
@@ -72,7 +72,7 @@ export const initDefaultStops = async (busId, direction) => {
     if (!hasArrival) {
         const newRef = push(ref(db, `routes/${busId}/${direction}/stops`));
         await set(newRef, {
-            name: `도착`,
+            name: `학교 (${label} 도착)`,
             address: '',
             scheduledTime: direction === 'school' ? '08:40' : '15:30',
             stopType: 'arrival',
@@ -83,35 +83,6 @@ export const initDefaultStops = async (busId, direction) => {
     }
 };
 
-// 출발점/도착점 중복 제거 및 이름 정규화
-export const cleanUpDuplicateSpecials = async (busId, direction) => {
-    const existing = await getStopsOnce(busId, direction);
-
-    const departures = existing.filter(s => s.stopType === 'departure').sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-    const arrivals = existing.filter(s => s.stopType === 'arrival').sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-
-    // Keep the first departure, delete the rest, and ensure its name is '출발'
-    if (departures.length > 0) {
-        const [keepDep, ...removeDeps] = departures;
-        if (keepDep.name !== '출발') {
-            await set(ref(db, `routes/${busId}/${direction}/stops/${keepDep.id}`), { ...keepDep, name: '출발' });
-        }
-        for (const dep of removeDeps) {
-            await deleteStop(busId, direction, dep.id);
-        }
-    }
-
-    // Keep the first arrival, delete the rest, and ensure its name is '도착'
-    if (arrivals.length > 0) {
-        const [keepArr, ...removeArrs] = arrivals;
-        if (keepArr.name !== '도착') {
-            await set(ref(db, `routes/${busId}/${direction}/stops/${keepArr.id}`), { ...keepArr, name: '도착' });
-        }
-        for (const arr of removeArrs) {
-            await deleteStop(busId, direction, arr.id);
-        }
-    }
-};
 
 // ── 탑승/미탑승 상태 관리 ──────────────────────────────────
 // /dailyStatus/{date}/{busId}/{direction}/{studentName}
@@ -147,52 +118,25 @@ export const subscribeDailyStatus = (busId, direction, callback, date = today())
     return () => off(r);
 };
 
-// ── 수동 정류장 진행 관리 ──────────────────────────────────
-// /routes/{busId}/{direction}/currentStop: number (-1=미운행, 0~N=현재정류장)
-export const setCurrentStop = async (busId, direction, stopIndex) => {
-    await set(ref(db, `routes/${busId}/${direction}/currentStop`), stopIndex);
-};
-
+// ── 운행 상태 (기사가 업데이트하는 현재 정류장 인덱스) ──
+// /busOperation/{busId}/{direction}/currentStopIndex
 export const subscribeCurrentStop = (busId, direction, callback) => {
-    const r = ref(db, `routes/${busId}/${direction}/currentStop`);
-    onValue(r, (snap) => callback(snap.val() ?? -1));
-    return () => off(r);
+    const r = ref(db, `busOperation/${busId}/${direction}/currentStopIndex`);
+    const handler = (snap) => {
+        const val = snap.val();
+        callback(val !== null ? val : -1);
+    };
+    onValue(r, handler);
+    return () => off(r, 'value', handler);
 };
 
-// ── 백그라운드 GPS 위치 관리 ──────────────────────────────────
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-export const updateBusLocationBackground = async (location) => {
-    try {
-        const busId = await AsyncStorage.getItem('activeBusId');
-        const direction = await AsyncStorage.getItem('activeDirection');
-        if (busId && direction) {
-            await set(ref(db, `locations/${busId}`), {
-                latitude: location.coords.latitude,
-                longitude: location.coords.longitude,
-                heading: location.coords.heading || 0,
-                speed: location.coords.speed || 0,
-                timestamp: Date.now(),
-                direction
-            });
-        }
-    } catch(e) {
-        // ignore
-    }
-};
-
-export const startGPS = async (busId, direction) => {
-    await AsyncStorage.setItem('activeBusId', busId);
-    await AsyncStorage.setItem('activeDirection', direction);
-};
-
-export const stopGPS = async () => {
-    await AsyncStorage.removeItem('activeBusId');
-    await AsyncStorage.removeItem('activeDirection');
-};
-
+// ── 버스 실시간 위치 ──
+// /busLocation/{busId}
 export const subscribeBusLocation = (busId, callback) => {
-    const r = ref(db, `locations/${busId}`);
-    const unsub = onValue(r, (snap) => callback(snap.val() || null));
-    return unsub;
+    const r = ref(db, `busLocation/${busId}`);
+    const handler = (snap) => {
+        callback(snap.val() || null);
+    };
+    onValue(r, handler);
+    return () => off(r, 'value', handler);
 };

@@ -81,8 +81,3 @@ export const getStudentByCode = async (code) => {
     const snap = await get(ref(db, `${CODES_PATH}/${code.toUpperCase()}`));
     return snap.exists() ? snap.val() : null;
 };
-
-// 학생 안 타는 요일 저장 (1=월, 2=화, 3=수, 4=목, 5=금)
-export const updateOffDays = async (code, offDays) => {
-    await set(ref(db, `${CODES_PATH}/${code}/offDays`), offDays);
-};
