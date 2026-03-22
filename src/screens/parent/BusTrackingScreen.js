@@ -120,7 +120,7 @@ const BusTrackingScreen = () => {
                         key={bus.id}
                         style={[styles.tab, selectedBus === bus.id && { backgroundColor: bus.color }]}
                         onPress={() => setSelectedBus(bus.id)}
-                        disabled={user?.role === 'parent'}
+                        disabled={user?.role === 'parent' && !!user?.busId}
                     >
                         <Text style={[styles.tabText, selectedBus === bus.id && { color: '#fff' }]}>🚌 {bus.label}</Text>
                         <View style={[styles.pingDot, { backgroundColor: busStopIndex >= 0 ? '#4ADE80' : '#4B5563' }]} />
