@@ -133,7 +133,7 @@ export const subscribeCurrentStop = (busId, direction, callback) => {
 // ── 버스 실시간 위치 ──
 // /busLocation/{busId}
 export const subscribeBusLocation = (busId, callback) => {
-    const r = ref(db, `busLocation/${busId}`);
+    const r = ref(db, `buses/${busId}`);
     const handler = (snap) => {
         callback(snap.val() || null);
     };
