@@ -9,6 +9,8 @@
         #debug { display:none; position:absolute; top:0; left:0; right:0; background:rgba(255,0,0,0.9); color:#fff; padding:8px; font-size:12px; z-index:9999; word-break:break-all; }
         .marker-container { display:flex; flex-direction:column; align-items:center; margin-top:-36px; position:relative; }
         .marker-container.even { flex-direction:column-reverse; margin-top:0; margin-bottom:-36px; }
+        .marker-container.offset-left { margin-left:-40px; }
+        .marker-container.offset-right { margin-left:40px; }
         .marker-label { background-color:rgba(255,255,255,0.95); padding:2px 5px; border-radius:6px; margin-bottom:2px; font-size:10px; font-weight:bold; color:#1E293B; box-shadow:0 1px 3px rgba(0,0,0,0.2); white-space:nowrap; max-width:70px; overflow:hidden; text-overflow:ellipsis; }
         .marker-container.even .marker-label { margin-bottom:0; margin-top:2px; }
         .marker-dot { width:24px; height:24px; border-radius:50%; background-color:#fff; display:flex; justify-content:center; align-items:center; font-size:11px; font-weight:bold; box-shadow:0 1px 3px rgba(0,0,0,0.3); }
@@ -67,6 +69,11 @@
                 if (config.stops && config.stops.length > 0) {
                     var linePath = [];
                     var bounds = new kakao.maps.LatLngBounds();
+                    // 출발/도착 좌표 동일 여부 확인
+                    var dep = config.stops.find(function(s){ return s.stopType === 'departure'; });
+                    var arr = config.stops.find(function(s){ return s.stopType === 'arrival'; });
+                    var sameDepArr = dep && arr && Math.abs(dep.latitude - arr.latitude) < 0.0001 && Math.abs(dep.longitude - arr.longitude) < 0.0001;
+
                     config.stops.forEach(function(stop, index) {
                         var position = new kakao.maps.LatLng(stop.latitude, stop.longitude);
                         linePath.push(position);
@@ -83,9 +90,13 @@
                         if (displayName.length > 6) displayName = displayName.substring(0, 6) + '…';
                         var evenClass = (index % 2 === 1) ? ' even' : '';
                         var yAnchorVal = (index % 2 === 1) ? 0 : 1;
+                        // 출발/도착 좌표가 같으면 좌우로 분리
+                        var offsetClass = '';
+                        if (sameDepArr && stop.stopType === 'departure') { offsetClass = ' offset-left'; yAnchorVal = 1; }
+                        if (sameDepArr && stop.stopType === 'arrival') { offsetClass = ' offset-right'; yAnchorVal = 1; }
                         var overlay = new kakao.maps.CustomOverlay({
                             position: position, yAnchor: yAnchorVal,
-                            content: '<div class="marker-container' + evenClass + '"><div class="marker-label">' + displayName + '</div><div class="marker-dot">' + labelText + '</div></div>'
+                            content: '<div class="marker-container' + evenClass + offsetClass + '"><div class="marker-label">' + displayName + '</div><div class="marker-dot">' + labelText + '</div></div>'
                         });
                         overlay.setMap(map);
                     });
