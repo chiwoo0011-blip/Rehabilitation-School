@@ -118,6 +118,24 @@ export const subscribeDailyStatus = (busId, direction, callback, date = today())
     return () => off(r);
 };
 
+// ── 월간 출결 조회 ──
+// dailyStatus/{date}/{busId}/{direction}/{encodedStudentName}
+export const getMonthlyStatus = async (busId, direction, studentName, yearMonth) => {
+    const { get, query, orderByKey, startAt, endAt } = await import('firebase/database');
+    const startDate = `${yearMonth}-01`;
+    const endDate = `${yearMonth}-31`;
+    const q = query(ref(db, 'dailyStatus'), orderByKey(), startAt(startDate), endAt(endDate));
+    const snap = await get(q);
+    const raw = snap.val() || {};
+    const key = encode(studentName);
+    const result = {};
+    Object.entries(raw).forEach(([date, buses]) => {
+        const st = buses?.[busId]?.[direction]?.[key];
+        if (st) result[date] = st;
+    });
+    return result;
+};
+
 // ── 운행 상태 (기사가 업데이트하는 현재 정류장 인덱스) ──
 // /busOperation/{busId}/{direction}/currentStopIndex
 export const subscribeCurrentStop = (busId, direction, callback) => {

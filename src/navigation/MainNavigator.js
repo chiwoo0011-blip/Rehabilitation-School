@@ -22,6 +22,7 @@ import OperatorHomeScreen from '../screens/operator/OperatorHomeScreen';
 import SchoolCalendarScreen from '../screens/parent/SchoolCalendarScreen';
 import CalendarManageScreen from '../screens/operator/CalendarManageScreen';
 import AttendanceScreen from '../screens/parent/AttendanceScreen';
+import AttendanceCalendarScreen from '../screens/parent/AttendanceCalendarScreen';
 import TeacherAttendanceScreen from '../screens/teacher/TeacherAttendanceScreen';
 
 // 역할에 따라 등하교 화면 자동 분기
@@ -47,6 +48,7 @@ const HomeStack = () => (
         <Stack.Screen name="Meal" component={MealScreen} options={{ title: '오늘의 급식 🍱' }} />
         <Stack.Screen name="FieldTrip" component={FieldTripScreen} options={{ title: '현장학습 앨범 📸' }} />
         <Stack.Screen name="Attendance" component={AttendanceRoute} options={{ title: '등하교 확인 ✅' }} />
+        <Stack.Screen name="AttendanceCalendar" component={AttendanceCalendarScreen} options={{ title: '월간 출결 📅', headerShown: false }} />
         <Stack.Screen name="Bus" component={BusTrackingScreen} options={{ title: '통학버스 실시간 위치 🚌' }} />
         <Stack.Screen name="Calendar" component={SchoolCalendarScreen} options={{ title: '학사일정 📅' }} />
     </Stack.Navigator>

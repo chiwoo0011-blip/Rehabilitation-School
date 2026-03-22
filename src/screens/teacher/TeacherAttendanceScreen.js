@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, StatusBar, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { db } from '../../services/firebaseConfig';
 import { ref, onValue, off, get } from 'firebase/database';
 import { subscribeStudents } from '../../services/studentService';
@@ -223,6 +224,7 @@ const WeekTab = ({ students }) => {
 
 // ── 메인 ─────────────────────────────────────────────────────
 const TeacherAttendanceScreen = () => {
+    const navigation = useNavigation();
     const [students, setStudents] = useState([]);
     const [bus1Status, setBus1Status] = useState({});
     const [bus2Status, setBus2Status] = useState({});
@@ -268,6 +270,13 @@ const TeacherAttendanceScreen = () => {
                 >
                     <Text style={[styles.tabBarBtnText, activeTab === 'week' && styles.tabBarBtnTextActive]}>이번 주</Text>
                 </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.calendarBtn}
+                    onPress={() => navigation.navigate('AttendanceCalendar')}
+                >
+                    <Ionicons name="calendar" size={14} color="#1D4ED8" />
+                    <Text style={styles.calendarBtnText}>월간</Text>
+                </TouchableOpacity>
             </View>
 
             {activeTab === 'today'
@@ -292,6 +301,8 @@ const styles = StyleSheet.create({
     tabBarBtnActive: { backgroundColor: '#fff', elevation: 2 },
     tabBarBtnText: { fontSize: 13, fontWeight: '700', color: '#94A3B8' },
     tabBarBtnTextActive: { color: '#1D4ED8' },
+    calendarBtn: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: '#DBEAFE', marginLeft: 4 },
+    calendarBtnText: { fontSize: 12, fontWeight: '700', color: '#1D4ED8' },
 
     tabContent: { paddingHorizontal: 12, paddingBottom: 32, gap: 12 },
 

@@ -56,7 +56,7 @@ const StatusCard = ({ title, icon, statusKey, time }) => {
     );
 };
 
-const AttendanceScreen = () => {
+const AttendanceScreen = ({ navigation }) => {
     const { user } = useAuth();
     const studentName = user?.studentName;
     const busId = user?.busId;
@@ -154,6 +154,13 @@ const AttendanceScreen = () => {
                     onPress={() => setActiveTab('week')}
                 >
                     <Text style={[styles.tabBarBtnText, activeTab === 'week' && styles.tabBarBtnTextActive]}>이번 주</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.calendarBtn}
+                    onPress={() => navigation.navigate('AttendanceCalendar')}
+                >
+                    <Ionicons name="calendar" size={14} color="#2563EB" />
+                    <Text style={styles.calendarBtnText}>월간</Text>
                 </TouchableOpacity>
             </View>
 
@@ -263,6 +270,8 @@ const styles = StyleSheet.create({
     tabBarBtnActive: { backgroundColor: '#fff', elevation: 2 },
     tabBarBtnText: { fontSize: 13, fontWeight: '700', color: '#94A3B8' },
     tabBarBtnTextActive: { color: '#2563EB' },
+    calendarBtn: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: '#DBEAFE', marginLeft: 4 },
+    calendarBtnText: { fontSize: 12, fontWeight: '700', color: '#2563EB' },
 
     content: { padding: 16, paddingBottom: 32 },
     studentBadge: {
