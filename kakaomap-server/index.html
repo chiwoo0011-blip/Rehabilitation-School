@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; }
+        #map { width: 100%; height: 100%; }
+        #debug { display:none; position:absolute; top:0; left:0; right:0; background:rgba(255,0,0,0.9); color:#fff; padding:8px; font-size:12px; z-index:9999; word-break:break-all; }
+        .marker-container { display:flex; flex-direction:column; align-items:center; margin-top:-46px; }
+        .marker-label { background-color:rgba(255,255,255,0.95); padding:4px 8px; border-radius:8px; margin-bottom:4px; font-size:14px; font-weight:bold; color:#1E293B; box-shadow:0 2px 4px rgba(0,0,0,0.2); white-space:nowrap; }
+        .marker-dot { width:32px; height:32px; border-radius:50%; background-color:#fff; display:flex; justify-content:center; align-items:center; font-size:14px; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.3); }
+        .bus-marker { width:44px; height:44px; border-radius:50%; border:3px solid #fff; display:flex; justify-content:center; align-items:center; font-size:20px; box-shadow:0 0 10px rgba(0,0,0,0.5); margin-top:-22px; margin-left:-22px; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div id="debug"></div>
+    <script>
+        var map = null, busOverlay = null;
+
+        function sendMessage(type, data) {
+            if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({ type: type, data: data }));
+            }
+        }
+
+        function showDebug(msg) {
+            var el = document.getElementById('debug');
+            el.style.display = 'block';
+            el.innerHTML += msg + '<br>';
+            sendMessage('onError', { message: msg });
+        }
+
+        window.onerror = function(msg, url, line) {
+            showDebug('JS Error: ' + msg + ' (line ' + line + ')');
+        };
+
+        window.initKakaoMap = function(config) {
+            try {
+                var mapContainer = document.getElementById('map');
+                map = new kakao.maps.Map(mapContainer, {
+                    center: new kakao.maps.LatLng(config.centerLat, config.centerLng),
+                    level: 5
+                });
+
+                var styleEl = document.createElement('style');
+                styleEl.textContent =
+                    '.marker-label { border: 2px solid ' + config.busColor + '; }' +
+                    '.marker-dot { border: 3px solid ' + config.busColor + '; color: ' + config.busColor + '; }' +
+                    '.bus-marker { background-color: ' + config.busColor + '; }';
+                document.head.appendChild(styleEl);
+
+                if (config.mode === 'picker') {
+                    kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
+                        var latlng = mouseEvent.latLng;
+                        sendMessage('onMapClick', { latitude: latlng.getLat(), longitude: latlng.getLng() });
+                    });
+                    kakao.maps.event.addListener(map, 'dragend', function() {
+                        var latlng = map.getCenter();
+                        sendMessage('onCenterChanged', { latitude: latlng.getLat(), longitude: latlng.getLng() });
+                    });
+                }
+
+                if (config.stops && config.stops.length > 0) {
+                    var linePath = [];
+                    var bounds = new kakao.maps.LatLngBounds();
+                    config.stops.forEach(function(stop, index) {
+                        var position = new kakao.maps.LatLng(stop.latitude, stop.longitude);
+                        linePath.push(position);
+                        bounds.extend(position);
+                        var labelText = '';
+                        if (stop.stopType === 'departure') labelText = '🚩';
+                        else if (stop.stopType === 'arrival') labelText = '🏁';
+                        else {
+                            labelText = config.stops.slice(0, index + 1).filter(function(s) {
+                                return !s.stopType || s.stopType === 'stop';
+                            }).length;
+                        }
+                        var overlay = new kakao.maps.CustomOverlay({
+                            position: position, yAnchor: 1,
+                            content: '<div class="marker-container"><div class="marker-label">' + (stop.name || '') + '</div><div class="marker-dot">' + labelText + '</div></div>'
+                        });
+                        overlay.setMap(map);
+                    });
+                    new kakao.maps.Polyline({
+                        path: linePath, strokeWeight: 5, strokeColor: config.busColor,
+                        strokeOpacity: 0.8, strokeStyle: 'solid'
+                    }).setMap(map);
+                    if (config.mode === 'viewer') map.setBounds(bounds, 50, 50, 50, 50);
+                }
+
+                if (config.busLoc && config.busLoc.latitude && config.busLoc.longitude) {
+                    drawBus(config.busLoc);
+                }
+                sendMessage('onMapReady', {});
+            } catch(e) {
+                showDebug('initKakaoMap error: ' + e.message);
+            }
+        };
+
+        function drawBus(loc) {
+            if (busOverlay) busOverlay.setMap(null);
+            busOverlay = new kakao.maps.CustomOverlay({
+                position: new kakao.maps.LatLng(loc.latitude, loc.longitude),
+                content: '<div class="bus-marker">🚌</div>', zIndex: 3
+            });
+            busOverlay.setMap(map);
+        }
+
+        window.updateMapData = function(s, busLoc) {
+            if (busLoc && busLoc.latitude && busLoc.longitude) drawBus(busLoc);
+        };
+    </script>
+    <script type="text/javascript"
+        src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=2d1a16b1318ce6c19e94c087565d494a&autoload=false"
+        onload="sendMessage('onSdkReady', {})"
+        onerror="showDebug('SDK load failed')"></script>
+</body>
+</html>
