@@ -84,6 +84,23 @@ export const initDefaultStops = async (busId, direction) => {
 };
 
 
+// 중복된 출발/도착 정류장 정리
+export const cleanUpDuplicateSpecials = async (busId, direction) => {
+    const { get } = await import('firebase/database');
+    const snap = await get(ref(db, `routes/${busId}/${direction}/stops`));
+    const raw = snap.val() || {};
+    const entries = Object.entries(raw);
+    const departures = entries.filter(([, v]) => v.stopType === 'departure');
+    const arrivals = entries.filter(([, v]) => v.stopType === 'arrival');
+    // 첫 번째만 남기고 나머지 삭제
+    for (let i = 1; i < departures.length; i++) {
+        await remove(ref(db, `routes/${busId}/${direction}/stops/${departures[i][0]}`));
+    }
+    for (let i = 1; i < arrivals.length; i++) {
+        await remove(ref(db, `routes/${busId}/${direction}/stops/${arrivals[i][0]}`));
+    }
+};
+
 // ── 탑승/미탑승 상태 관리 ──────────────────────────────────
 // /dailyStatus/{date}/{busId}/{direction}/{studentName}
 const statusRef = (busId, direction, studentName, date = today()) =>
